@@ -39,7 +39,7 @@ from erpnext.controllers.selling_controller import SellingController
 from erpnext.projects.doctype.timesheet.timesheet import get_projectwise_timesheet_data
 from erpnext.setup.doctype.company.company import update_company_current_month_sales
 from erpnext.stock.doctype.delivery_note.delivery_note import update_billed_amount_based_on_so
-from erpnext.stock.doctype.serial_no.serial_no import get_delivery_note_serial_no, get_serial_nos
+# from erpnext.stock.doctype.serial_no.serial_no import get_delivery_note_serial_no, get_serial_nos
 
 form_grid_templates = {"items": "templates/form_grid/item_grid.html"}
 
@@ -2908,3 +2908,33 @@ def check_if_return_invoice_linked_with_payment_entry(self):
 			message += " " + ", ".join(payment_entries_link) + " "
 			message += _("to unallocate the amount of this Return Invoice before cancelling it.")
 			frappe.throw(message)
+
+
+def get_delivery_note_serial_no(item_code, qty, delivery_note):
+	serial_nos = ""
+	dn_serial_nos = frappe.db.sql_list(
+		""" select name from `tabSerial No`
+		where item_code = %(item_code)s and delivery_document_no = %(delivery_note)s
+		and sales_invoice is null limit {0}""".format(
+			cint(qty)
+		),
+		{"item_code": item_code, "delivery_note": delivery_note},
+	)
+
+	if dn_serial_nos and len(dn_serial_nos) > 0:
+		serial_nos = "\n".join(dn_serial_nos)
+
+	return serial_nos
+
+
+def get_serial_nos_for_outward(kwargs):
+	from erpnext.stock.doctype.serial_and_batch_bundle.serial_and_batch_bundle import (
+		get_available_serial_nos,
+	)
+
+	serial_nos = get_available_serial_nos(kwargs)
+
+	if not serial_nos:
+		return []
+
+	return [d.serial_no for d in serial_nos]
