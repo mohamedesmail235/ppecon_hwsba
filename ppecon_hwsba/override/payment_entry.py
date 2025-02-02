@@ -99,6 +99,11 @@ class CustomPaymentEntry(AccountsController):
 		self.set_tax_withholding()
 		self.set_status()
 		self.set_total_in_words()
+		self.validate_out_standing_amount()
+
+	def validate_out_standing_amount(self):
+		for row in self.get("references"):
+			row.outstanding_amount = row.allocated_amount
 
 	def before_save(self):
 		self.set_matched_unset_payment_requests_to_response()
@@ -257,8 +262,9 @@ class CustomPaymentEntry(AccountsController):
 		else:
 			fail_message = _("Row #{0}: Allocated Amount cannot be greater than outstanding amount.")
 			for d in self.get("references"):
-				if (flt(d.allocated_amount)) > 0 and flt(d.allocated_amount) > flt(d.outstanding_amount):
-					frappe.throw(fail_message.format(d.idx))
+				if not d.reference_doctype=="Employee Advance":
+					if (flt(d.allocated_amount)) > 0 and flt(d.allocated_amount) > flt(d.outstanding_amount):
+						frappe.throw(fail_message.format(d.idx))
 
 				# Check for negative outstanding invoices as well
 				if flt(d.allocated_amount) < 0 and flt(d.allocated_amount) < flt(d.outstanding_amount):
@@ -606,7 +612,7 @@ class CustomPaymentEntry(AccountsController):
 		elif self.party_type == "Shareholder":
 			return ("Journal Entry",)
 		elif self.party_type == "Employee":
-			return ("Journal Entry",)
+			return ("Journal Entry","Employee Advance")
 
 	def validate_paid_invoices(self):
 		no_oustanding_refs = {}

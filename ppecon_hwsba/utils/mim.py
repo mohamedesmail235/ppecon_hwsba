@@ -1,9 +1,6 @@
 
 import frappe
 
-
-
-
 @frappe.whitelist()
 def get_total_tax_percentage(taxes_and_charges_template):
     sum_percentage = 0
